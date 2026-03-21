@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
 
   # ─────────────────────────────────────────
@@ -86,13 +90,14 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-fs-report.sarif'
+          format: 'table'
+          output: 'trivy-fs-report.txt'
 
-      - name: Upload Trivy FS report to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Trivy FS report as artifact
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: 'trivy-fs-report.sarif'
+          name: trivy-fs-report
+          path: trivy-fs-report.txt
 
   # ─────────────────────────────────────────
   # Stage 4 — OWASP Dependency Check (SCA)
@@ -141,13 +146,14 @@ jobs:
         with:
           scan-type: 'image'
           image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-image-report.sarif'
+          format: 'table'
+          output: 'trivy-image-report.txt'
 
-      - name: Upload Trivy image report to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Trivy image report as artifact
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: 'trivy-image-report.sarif'
+          name: trivy-image-report
+          path: trivy-image-report.txt
 
   # ─────────────────────────────────────────
   # Stage 6 — Docker Push
@@ -174,3 +180,26 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:${{ github.sha }}
+```
+
+---
+
+## What Changed
+```
+Before → Trivy uploaded SARIF to GitHub Security tab (needed permissions)
+After  → Trivy saves a simple .txt report as a downloadable artifact
+
+Same security scanning, zero permission issues
+```
+
+---
+
+## Where to Find Reports After Pipeline Runs
+```
+GitHub → Actions tab → click your pipeline run
+→ scroll down to "Artifacts" section
+
+You'll see:
+📄 trivy-fs-report      ← filesystem scan results
+📄 trivy-image-report   ← container image scan results
+📄 owasp-report         ← dependency CVE report
