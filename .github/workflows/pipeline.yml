@@ -11,9 +11,6 @@ permissions:
 
 jobs:
 
-  # ─────────────────────────────────────────
-  # Stage 1 — Build & Test
-  # ─────────────────────────────────────────
   build:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -35,9 +32,6 @@ jobs:
       - name: Test
         run: dotnet test --no-build --verbosity normal
 
-  # ─────────────────────────────────────────
-  # Stage 2 — SonarCloud (SAST)
-  # ─────────────────────────────────────────
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
@@ -66,17 +60,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          dotnet-sonarscanner begin \
-            /k:"VSMANOJKUMAR_dotnet-taskapi" \
-            /o:"vsmanojkumar" \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet-sonarscanner begin /k:"VSMANOJKUMAR_dotnet-taskapi" /o:"vsmanojkumar" /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           dotnet build
-          dotnet-sonarscanner end \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
-  # ─────────────────────────────────────────
-  # Stage 3 — Trivy Filesystem Scan
-  # ─────────────────────────────────────────
   trivy-fs:
     name: Trivy Filesystem Scan
     runs-on: ubuntu-latest
@@ -99,9 +86,6 @@ jobs:
           name: trivy-fs-report
           path: trivy-fs-report.txt
 
-  # ─────────────────────────────────────────
-  # Stage 4 — OWASP Dependency Check (SCA)
-  # ─────────────────────────────────────────
   owasp:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
@@ -124,9 +108,6 @@ jobs:
           name: owasp-report
           path: reports/
 
-  # ─────────────────────────────────────────
-  # Stage 5 — Docker Build + Trivy Image Scan
-  # ─────────────────────────────────────────
   docker-build-scan:
     name: Docker Build and Image Scan
     runs-on: ubuntu-latest
@@ -138,8 +119,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:${{ github.sha }} .
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:${{ github.sha }} \
-                     ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:latest
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:latest
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@master
@@ -155,9 +135,6 @@ jobs:
           name: trivy-image-report
           path: trivy-image-report.txt
 
-  # ─────────────────────────────────────────
-  # Stage 6 — Docker Push
-  # ─────────────────────────────────────────
   docker-push:
     name: Push to Docker Hub
     runs-on: ubuntu-latest
@@ -180,26 +157,3 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/dotnet-taskapi:${{ github.sha }}
-```
-
----
-
-## What Changed
-```
-Before → Trivy uploaded SARIF to GitHub Security tab (needed permissions)
-After  → Trivy saves a simple .txt report as a downloadable artifact
-
-Same security scanning, zero permission issues
-```
-
----
-
-## Where to Find Reports After Pipeline Runs
-```
-GitHub → Actions tab → click your pipeline run
-→ scroll down to "Artifacts" section
-
-You'll see:
-📄 trivy-fs-report      ← filesystem scan results
-📄 trivy-image-report   ← container image scan results
-📄 owasp-report         ← dependency CVE report
