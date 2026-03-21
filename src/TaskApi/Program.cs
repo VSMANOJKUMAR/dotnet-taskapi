@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using TaskApi;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -46,11 +50,14 @@ app.MapDelete("/tasks/{id}", (int id) =>
 // Health check
 app.MapGet("/health", () => Results.Ok("Healthy"));
 
-app.Run();
+await app.RunAsync();
 
-public class TaskItem
+namespace TaskApi
 {
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public bool IsComplete { get; set; }
+    public class TaskItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public bool IsComplete { get; set; }
+    }
 }
